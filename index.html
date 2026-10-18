@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>ZAYFA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#061a17">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+html,body{margin:0;height:100%;background:#fbf8f0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#14211d}
+#app{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fbf8f0}
+.layar{position:fixed;inset:0;z-index:5;display:grid;place-items:center;padding:24px;background:#fbf8f0;text-align:center}
+.layar[hidden]{display:none}
+.layar img{width:min(62vw,260px);height:auto}
+.layar p{margin:10px 0 0;color:#6b6a5f}
+.layar a,.layar button{color:#0f4a40;font-weight:700}
+input{width:100%;max-width:420px;padding:12px;font:inherit;border:1px solid #e7e0d0;border-radius:12px;background:#fff}
+button.utama{margin-top:12px;padding:13px 22px;font:inherit;font-weight:700;color:#241b07;border:0;border-radius:14px;background:linear-gradient(135deg,#ecd699,#c9a45c 55%,#b38a3e)}
+.galat{color:#a8434f;min-height:1.4em}
+#offline{position:fixed;left:0;right:0;top:0;z-index:9;padding:8px;text-align:center;background:#a8434f;color:#fff;font-weight:600}
+#offline[hidden]{display:none}
+</style>
+</head>
+<body>
+<div id="offline" hidden>Tidak ada koneksi internet. ZAYFA butuh internet untuk memuat data.</div>
+
+<div id="atur" class="layar" hidden>
+  <div>
+    <img src="icons/logo.png" alt="ZAYFA">
+    <p>Tempel alamat aplikasi (berakhiran <b>/exec</b>) dari Apps Script.<br>Disimpan hanya di perangkat ini.</p>
+    <form id="form"><input id="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec"><div class="galat" id="galat"></div><button class="utama" type="submit">Simpan dan buka</button></form>
+  </div>
+</div>
+
+<div id="muat" class="layar" hidden>
+  <div>
+    <img src="icons/logo.png" alt="ZAYFA">
+    <p>Memuat…</p>
+    <p id="lambat" hidden>Terlalu lama? <a id="langsung" target="_top">Buka langsung</a> · <a href="?atur=1">Ganti alamat</a></p>
+  </div>
+</div>
+
+<iframe id="app" title="ZAYFA" allow="clipboard-write; fullscreen"></iframe>
+
+<script>
+/* OPSIONAL: isi alamat /exec di bawah jika Anda tidak keberatan alamatnya tampil di repositori publik.
+   Dibiarkan kosong = alamat ditempel sekali di perangkat dan disimpan di penyimpanan lokal (tidak ada di repositori). */
+var ALAMAT_TETAP = '';
+
+var KUNCI = 'zayfa_alamat', POLA = /^https:\/\/script\.google\.com\/(a\/macros\/[\w.-]+\/|macros\/)s\/[\w-]+\/exec$/;
+var el = function (i) { return document.getElementById(i); };
+var q = new URLSearchParams(location.search);
+if (q.get('atur')) { try { localStorage.removeItem(KUNCI); } catch (e) {} history.replaceState(null, '', location.pathname); }
+var alamat = ALAMAT_TETAP; try { alamat = alamat || localStorage.getItem(KUNCI) || ''; } catch (e) {}
+
+function buka(u) {
+  el('muat').hidden = false; el('langsung').href = u;
+  var app = el('app');
+  app.addEventListener('load', function () { el('muat').hidden = true; clearTimeout(t); });
+  var t = setTimeout(function () { el('lambat').hidden = false; }, 12000);
+  app.src = u;
+}
+if (POLA.test(alamat)) buka(alamat);
+else {
+  el('atur').hidden = false;
+  el('form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var u = el('url').value.trim();
+    if (!POLA.test(u)) { el('galat').textContent = 'Alamat tidak dikenali. Harus berbentuk https://script.google.com/macros/s/…/exec'; return; }
+    try { localStorage.setItem(KUNCI, u); } catch (x) { el('galat').textContent = 'Penyimpanan perangkat diblokir. Isi ALAMAT_TETAP di index.html.'; return; }
+    el('atur').hidden = true; buka(u);
+  });
+}
+function status() { el('offline').hidden = navigator.onLine; }
+addEventListener('online', status); addEventListener('offline', status); status();
+if ('serviceWorker' in navigator) addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+</script>
+</body>
+</html>
