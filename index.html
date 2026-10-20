@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#061a17">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/favicon-32.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 html,body{margin:0;height:100%;background:#fbf8f0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#14211d}
 #app{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fbf8f0}
@@ -51,7 +51,7 @@ button.utama{margin-top:12px;padding:13px 22px;font:inherit;font-weight:700;colo
 
 <div id="atur" class="layar" hidden>
   <div>
-    <img src="icons/logo.png" alt="ZAYFA">
+    <img src="logo.png" alt="ZAYFA">
     <p>Tempel alamat aplikasi (berakhiran <b>/exec</b>) dari Apps Script.<br>Disimpan hanya di perangkat ini.</p>
     <form id="form"><input id="url" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec"><div class="galat" id="galat"></div><button class="utama" type="submit">Simpan dan buka</button></form>
   </div>
@@ -59,7 +59,7 @@ button.utama{margin-top:12px;padding:13px 22px;font:inherit;font-weight:700;colo
 
 <div id="muat" class="layar" hidden>
   <div>
-    <img src="icons/logo.png" alt="ZAYFA">
+    <img src="logo.png" alt="ZAYFA">
     <p>Memuat…</p>
     <p id="lambat" hidden>Terlalu lama? <a id="langsung" target="_top">Buka langsung</a> · <a href="?atur=1">Ganti alamat</a></p>
   </div>
@@ -148,6 +148,26 @@ else {
     el('atur').hidden = true; buka(u);
   });
 }
+/* Penyimpanan token "ingat perangkat" untuk aplikasi di dalam bingkai (penyimpanan cangkang lebih tahan daripada di dalam bingkai Apps Script).
+   Hanya melayani halaman Google, dan hanya menerima/menyimpan bentuk {nama, token}. */
+/* Pengirim harus berada DI DALAM bingkai ZAYFA milik cangkang ini. Asal googleusercontent.com saja tidak cukup:
+   halaman Apps Script milik siapa pun ada di domain itu dan bisa membuka cangkang untuk meminta token. */
+function dalamBingkaiKita(src) {
+  try { var w = src; for (var i = 0; i < 8 && w; i++) { if (w === el('app').contentWindow) return true; if (w.parent === w) return false; w = w.parent; } } catch (x) {}
+  return false;
+}
+addEventListener('message', function (e) {
+  var d = e.data;
+  if (!d || d.zayfa !== 'perangkat' || !/^https:\/\/([\w-]+\.)*(google\.com|googleusercontent\.com)$/.test(e.origin) || !dalamBingkaiKita(e.source)) return;
+  var k = 'zayfa_perangkat', nilai = null;
+  try {
+    if (d.aksi === 'simpan') {
+      var v = d.nilai; if (v && typeof v.nama === 'string' && typeof v.token === 'string' && v.nama.length < 40 && v.token.length < 100) localStorage.setItem(k, JSON.stringify({ nama: v.nama, token: v.token }));
+    } else if (d.aksi === 'hapus') localStorage.removeItem(k);
+    else nilai = JSON.parse(localStorage.getItem(k) || 'null');
+  } catch (x) {}
+  try { e.source.postMessage({ zayfa: 'jawab', id: d.id, nilai: nilai }, e.origin); } catch (x) {}
+});
 function status() { el('offline').hidden = navigator.onLine; }
 addEventListener('online', status); addEventListener('offline', status); status();
 if ('serviceWorker' in navigator) addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });

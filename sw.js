@@ -1,8 +1,9 @@
 /* Service worker cangkang ZAYFA. Hanya menyimpan berkas cangkang (bukan data keuangan).
    Jaringan didahulukan supaya pembaruan cangkang langsung terpakai; cache hanya cadangan saat offline. */
-const V = 'zayfa-cangkang-v2';
-const ASET = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/logo.png'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(ASET)).then(() => self.skipWaiting())); });
+const V = 'zayfa-cangkang-v4';
+const ASET = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'logo.png'];
+/* Aset yang hilang tidak membatalkan pemasangan service worker. */
+self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => Promise.all(ASET.map(a => c.add(a).catch(() => {})))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== V).map(x => caches.delete(x)))).then(() => self.clients.claim()));
 });
